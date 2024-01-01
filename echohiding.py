@@ -79,7 +79,7 @@ def extract_echo_bits(y, L, delta0=50, delta1=75):
     F = np.fft.irfft(np.log(F+1e-8), axis=1)
     return F[:, delta1] > F[:, delta0]
 
-def get_odg_distortion(x, y, sr, cleanup=True):
+def get_odg_distortion(x, y, sr, advanced=True, cleanup=True):
     """
     A wrapper around GstPEAQ for computing objective measurements
     of pereceived audio quality
@@ -92,6 +92,8 @@ def get_odg_distortion(x, y, sr, cleanup=True):
         Test audio
     sr: int
         Sample rate
+    advanced: bool
+        If True, use "advanced mode"
     
     Returns
     -------
@@ -113,7 +115,10 @@ def get_odg_distortion(x, y, sr, cleanup=True):
 
     test = np.array(y*32768, dtype=np.int16)
     wavfile.write("test.wav", sr, test)
-    res = check_output(["peaq", "--advanced", "ref.wav", "test.wav"])
+    if advanced:
+        res = check_output(["peaq", "--advanced", "ref.wav", "test.wav"])
+    else:
+        res = check_output(["peaq", "ref.wav", "test.wav"])
     odg = float(str(res).split("\\n")[0].split()[-1])
     di = float(str(res).split("\\n")[1].split()[-1])
     if cleanup:
