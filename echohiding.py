@@ -76,10 +76,10 @@ def extract_echo_bits(y, L, delta0=50, delta1=75):
     Y[1::2, :] = np.reshape(yp[L:L+n_odd*L*2], (n_odd, L*2))
     Y = Y*h[None, :]
     F = np.abs(np.fft.rfft(Y, axis=1))
-    F = np.fft.irfft(np.log(F), axis=1)
+    F = np.fft.irfft(np.log(F+1e-8), axis=1)
     return F[:, delta1] > F[:, delta0]
 
-def get_odg_distortion(x, y, sr):
+def get_odg_distortion(x, y, sr, cleanup=True):
     """
     A wrapper around GstPEAQ for computing objective measurements
     of pereceived audio quality
@@ -106,6 +106,7 @@ def get_odg_distortion(x, y, sr):
         Distortion index
     """
     from scipy.io import wavfile
+    import os
     from subprocess import check_output
     ref = np.array(x*32768, dtype=np.int16)
     wavfile.write("ref.wav", sr, ref)
@@ -115,4 +116,33 @@ def get_odg_distortion(x, y, sr):
     res = check_output(["peaq", "--advanced", "ref.wav", "test.wav"])
     odg = float(str(res).split("\\n")[0].split()[-1])
     di = float(str(res).split("\\n")[1].split()[-1])
+    if cleanup:
+        os.remove("ref.wav")
+        os.remove("test.wav")
     return odg, di
+
+def get_mp3_encoded(x, sr, bitrate):
+    """
+    Parameters
+    ----------
+    x: ndarray(N, dtype=float)
+        Mono audio samples in [-1, 1]
+    sr: int
+        Sample rate
+    bitrate: int
+        Number of kbits per second to use in the mp3 encoding
+    """
+    import subprocess
+    import os
+    from scipy.io import wavfile
+    x = np.array(x*32768, dtype=np.int16)
+    wavfile.write("temp.wav", sr, x)
+    if os.path.exists("temp.mp3"):
+        os.remove("temp.mp3")
+    subprocess.call(["ffmpeg", "-i", "temp.wav","-b:a", "{}k".format(bitrate), "temp.mp3"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.remove("temp.wav")
+    subprocess.call(["ffmpeg", "-i", "temp.mp3", "temp.wav"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.remove("temp.mp3")
+    _, y = wavfile.read("temp.wav")
+    os.remove("temp.wav")
+    return y/32768
