@@ -82,7 +82,9 @@ def extract_echo_bits(y, L, delta0=50, delta1=75):
 def get_odg_distortion(x, y, sr, advanced=True, cleanup=True):
     """
     A wrapper around GstPEAQ for computing objective measurements
-    of pereceived audio quality
+    of pereceived audio quality.
+    Software must be installed first:
+    https://github.com/HSU-ANT/gstpeaq
 
     Parameters
     ----------
@@ -128,6 +130,9 @@ def get_odg_distortion(x, y, sr, advanced=True, cleanup=True):
 
 def get_mp3_encoded(x, sr, bitrate):
     """
+    Get an mp3 encoding.  Assumes ffmpeg is installed and accessible
+    in the terminal environment
+
     Parameters
     ----------
     x: ndarray(N, dtype=float)
