@@ -51,6 +51,8 @@ def echo_hide(x, L, b, delta0=50, delta1=75, alpha=0.4):
 
 def extract_echo_bits(y, L, delta0=50, delta1=75):
     """
+    Use the windowed autocepstrum to extract the echo bits
+
     Parameters
     ----------
     y: ndarray(N)
@@ -67,7 +69,6 @@ def extract_echo_bits(y, L, delta0=50, delta1=75):
     ndarray(N//L)
         Array of estimated bits
     """
-    h = hann(L*2)
     yp = np.pad(y, (L//2, L//2))
     T = (yp.size-L*2)//L+1
     n_even = yp.size//(L*2)
@@ -75,10 +76,10 @@ def extract_echo_bits(y, L, delta0=50, delta1=75):
     Y = np.zeros((T, L*2))
     Y[0::2, :] = np.reshape(yp[0:n_even*L*2], (n_even, L*2))
     Y[1::2, :] = np.reshape(yp[L:L+n_odd*L*2], (n_odd, L*2))
-    Y = Y*h[None, :]
+    Y = Y*hann(L*2)[None, :] # Apply hann window
     F = np.abs(np.fft.rfft(Y, axis=1))
     F = np.fft.irfft(np.log(F+1e-8), axis=1)
-    return F[:, delta1] > F[:, delta0]
+    return np.array(F[:, delta1] > F[:, delta0], dtype=int)
 
 def echo_hide_single(x, delta, alpha=0.4):
     """
@@ -112,6 +113,6 @@ def get_cepstrum(x):
         Cepstrum
     """
     x = x*hann(x.size)
-    F = np.abs(np.fft.rfft(x, axis=1))
-    F = np.fft.irfft(np.log(F+1e-8), axis=1)
+    F = np.abs(np.fft.rfft(x))
+    F = np.fft.irfft(np.log(F+1e-8))
     return F
